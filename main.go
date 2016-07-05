@@ -10,6 +10,7 @@ import (
  "io/ioutil"
  "path/filepath"
  "runtime"
+ "time"
 
  "gopkg.in/yaml.v2"
 
@@ -34,6 +35,7 @@ func main() {
 
 
   use_mfa := true
+  retries := 3
 
   project_config := new(conf)
 
@@ -52,6 +54,10 @@ func main() {
 
   curr_dir, err := os.Getwd()
 
+  if err != nil {
+    log.Fatal("[ERROR] Failed to get current working directory. Aborting with error: ", err)
+  }
+
   dir_separator := ""
 
   if runtime.GOOS == "windows" {
@@ -60,7 +66,8 @@ func main() {
     dir_separator = "/"
   }
 
-  tmp := strings.Split(dir_separator, curr_dir)
+  tmp := strings.Split(curr_dir, dir_separator)
+
 
   project_config.environment = tmp[len(tmp)-1]
   project_config.account     = tmp[len(tmp)-2]
@@ -74,16 +81,16 @@ func main() {
 
 
   if len(project_config.Project) <= 0 {
-    log.Fatal("[ERROR] No project your set in your project.yaml configuration.")
+    log.Fatal("[ERROR] No project is set in your project.yaml configuration.")
   }
 
   accounts := map[string] bool {fmt.Sprintf("%s-dev", project_config.Project): true, 
                             fmt.Sprintf("%s-prd", project_config.Project): true,
                            }
 
-  state_config := &tf_helper.config{ bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
-                                     state_filename: fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
-                                     versioning: true,
+  state_config := &tf_helper.Config{ Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
+                                     State_filename: fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
+                                     Versioning: true,
                                    }
 
 
@@ -107,22 +114,19 @@ func main() {
   for i:=1; i<=retries; i++ {
 
     if !state_config.Create_bucket(client) {
-      log.Printf("[INFO] S3 Bucket %s created and versioning enabled.\n", state_config.bucket_name)
+      log.Printf("[WARN] S3 Bucket %s failed to be created. Retrying.\n", state_config.Bucket_name)
     } else {
-      log.Printf("[WARN] S3 Bucket %s failed to be created. Retrying.\n", state_config.bucket_name)
+      log.Printf("[INFO] S3 Bucket %s created and versioning enabled.\n", state_config.Bucket_name)
+      bucket_created = true
       break
     }
 
-    time.Sleep()
+    time.Sleep(time.Duration(i)*time.Second)
 
   }
 
   if bucket_created {
-
-    if !state_config.Setup_remote_state(client) {
-      log.Fatal("[ERROR] Terraform remote state failed to be configured. Aborting.\n")
-    }
-
+    state_config.Setup_remote_state(client)   
   } else {
     log.Fatalf("[ERROR] S3 Bucket failed to be created after %d retries. Aborting.\n", retries)
   }

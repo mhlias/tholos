@@ -2,10 +2,10 @@ package aws_helper
 
 
 import (
-  "log"
-  "os"
+  //"log"
+  //"os"
 
-  "github.com/craigmj/gototp"
+  //"github.com/craigmj/gototp"
 )
 
 
@@ -16,6 +16,6 @@ type mfa_conf struct {
 }
 
 
-func (m *mfa_conf) read_token() bool {
+func (m *mfa_conf) read_token() {
   
 }

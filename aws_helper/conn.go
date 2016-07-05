@@ -4,6 +4,7 @@ package aws_helper
 import (
     "log"
     "fmt"
+    "os"
 
     "github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/session"
@@ -17,7 +18,7 @@ import (
 
 type AWSClient struct {
   stsconn            *sts.STS
-  s3conn             *s3.S3
+  S3conn             *s3.S3
   region             string
 }
 
@@ -35,7 +36,13 @@ type Config struct {
 
 func (c *Config) Connect() interface{} {
 
-  var client, project_client AWSClient
+  var client AWSClient
+
+  os.Unsetenv("AWS_ACCESS_KEY_ID")
+  os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+  os.Unsetenv("AWS_SECURITY_TOKEN")
+  os.Unsetenv("AWS_SESSION_TOKEN")
+  os.Unsetenv("AWS_DEFAULT_REGION")
 
   screds := &credentials.SharedCredentialsProvider{Profile: c.Profile}
 
@@ -51,7 +58,7 @@ func (c *Config) Connect() interface{} {
   log.Println("[INFO] Initializing STS Connection")
   client.stsconn = sts.New(sess)
 
-  params := &sts.AssumeRole{}
+  params := &sts.AssumeRoleInput{}
 
   if c.Use_mfa {
 
@@ -77,6 +84,13 @@ func (c *Config) Connect() interface{} {
   	log.Fatalf("Unable to assume role: %v", sts_err.Error())
   }
 
+  os.Setenv("AWS_ACCESS_KEY_ID", *sts_resp.Credentials.AccessKeyId)
+  os.Setenv("AWS_SECRET_ACCESS_KEY", *sts_resp.Credentials.SecretAccessKey)
+  os.Setenv("AWS_SECURITY_TOKEN", *sts_resp.Credentials.SessionToken)
+  os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
+  os.Setenv("AWS_DEFAULT_REGION", c.Region)
+
+
   return c.assumeConnect(sts_resp)
 
 }
@@ -97,7 +111,7 @@ func (c *Config) assumeConnect(sts *sts.AssumeRoleOutput) interface{} {
   sess := session.New(awsConfig)
 
   log.Println("[INFO] Initializing S3 Connection")
-  client.s3conn = s3.New(sess)
+  client.S3conn = s3.New(sess)
 
   return &client
 
