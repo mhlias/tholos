@@ -4,9 +4,6 @@ package tf_helper
 import (
 	"log"
 	"fmt"
-	"bytes"
-	"time"
-	"os/exec"
 
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
@@ -108,34 +105,24 @@ func (c *Config) enable_versioning(client interface{}) bool {
 }
 
 
-func (c *Config) Setup_remote_state(client interface{}) {
+func (c *Config) Setup_remote_state() {
 
 	//log.Printf("[INFO] Environment variables: %s, %s, %s, %s", os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), os.Getenv("AWS_SECURITY_TOKEN"), os.Getenv("AWS_DEFAULT_REGION") )
 
-	exec_args := fmt.Sprintf("remote config -backend=S3 -backend-config='bucket=%s' -backend-config='key=%s'",  c.Bucket_name, c.State_filename)
+	cmdName := "terraform"
 
 	args := []string {"remote", 
-					  "config", 
-					  "-backend=S3", 
-					  fmt.Sprintf("-backend-config='bucket=%s'", c.Bucket_name),
-					  fmt.Sprintf("-backend-config='key=%s'", c.State_filename),
-					 }
-
-	log.Printf("[INFO] Executing terraform command: terraform %s", exec_args)
-
-	cmd_name := "terraform"
-
-	cmd := exec.Command(cmd_name, args...)
-	fmt.Printf("%v\n", cmd)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	time.Sleep(1*time.Second)
-	if err != nil {
-		fmt.Printf("%q\n", out.String())
-		log.Fatal("Setting up S3 remote state with terraform failed: ", err)
+									  "config", 
+									  "-backend=S3",
+									  fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
+									  fmt.Sprintf("-backend-config=key=%s", c.State_filename),
+									 }
+	
+	if ExecCmd(cmdName, args) {
+		log.Println("[INFO] Remote State was set up successfully.")
+	} else {
+		log.Fatal("[INFO] Remote state failed to be set up. Aborting.\n")
 	}
-	fmt.Printf("%q\n", out.String())
 
 }
 

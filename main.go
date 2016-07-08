@@ -11,6 +11,7 @@ import (
  "path/filepath"
  "runtime"
  "time"
+ "flag"
 
  "gopkg.in/yaml.v2"
 
@@ -36,6 +37,22 @@ func main() {
 
   use_mfa := true
   retries := 3
+
+
+  planPtr := flag.Bool("p", false, "Terraform Plan")
+  applyPtr := flag.Bool("a", false, "Terraform Apply Plan")
+  syncPtr := flag.Bool("s", false, "Sync remote S3 state")
+  modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
+  outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
+
+
+  flag.Parse()
+
+  if !*planPtr && !*syncPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
+    fmt.Println("Please provide one of the following parameters:")
+    flag.PrintDefaults()
+    os.Exit(0)
+  }
 
   project_config := new(conf)
 
@@ -93,44 +110,62 @@ func main() {
                                      Versioning: true,
                                    }
 
+  modules := &tf_helper.Modules{}
+
 
   if _, ok := accounts[project_config.account]; !ok {
     log.Fatalf("[ERROR] Account directories do not match project name. Name found: %s, expected %s-dev or %s-prd\n", project_config.account, project_config.Project, project_config.Project)
   }
 
+  var client interface{}
 
-  awsconf := &aws_helper.Config{ Region: project_config.Region, 
-                                 Profile: project_config.Root_profile, 
-                                 Role: project_config.Roam_role, 
-                                 Account_id: project_config.Accounts_mapping[project_config.account],
-                                 Use_mfa: use_mfa,
-                               }
+  if !*modulesPtr {
 
-  client := awsconf.Connect()
+    awsconf := &aws_helper.Config{ Region: project_config.Region, 
+                                   Profile: project_config.Root_profile, 
+                                   Role: project_config.Roam_role, 
+                                   Account_id: project_config.Accounts_mapping[project_config.account],
+                                   Use_mfa: use_mfa,
+                                 }
+
+    client = awsconf.Connect()
+
+  }
 
 
-  bucket_created := false
+  if *syncPtr {
 
-  for i:=1; i<=retries; i++ {
+    bucket_created := false
 
-    if !state_config.Create_bucket(client) {
-      log.Printf("[WARN] S3 Bucket %s failed to be created. Retrying.\n", state_config.Bucket_name)
-    } else {
-      log.Printf("[INFO] S3 Bucket %s created and versioning enabled.\n", state_config.Bucket_name)
-      bucket_created = true
-      break
+    for i:=1; i<=retries; i++ {
+
+      if !state_config.Create_bucket(client) {
+        log.Printf("[WARN] S3 Bucket %s failed to be created. Retrying.\n", state_config.Bucket_name)
+      } else {
+        log.Printf("[INFO] S3 Bucket %s created and versioning enabled.\n", state_config.Bucket_name)
+        bucket_created = true
+        break
+      }
+
+      time.Sleep(time.Duration(i)*time.Second)
+
     }
 
-    time.Sleep(time.Duration(i)*time.Second)
+    if bucket_created {
+      state_config.Setup_remote_state()   
+    } else {
+      log.Fatalf("[ERROR] S3 Bucket failed to be created after %d retries. Aborting.\n", retries)
+    }
 
+  } else if *planPtr {
+    state_config.Plan()
+  } else if *modulesPtr {
+    modules.Fetch_modules()
+  } else if *outputsPtr {
+    state_config.Outputs()
+  } else if *applyPtr {
+    state_config.Apply()
   }
-
-  if bucket_created {
-    state_config.Setup_remote_state(client)   
-  } else {
-    log.Fatalf("[ERROR] S3 Bucket failed to be created after %d retries. Aborting.\n", retries)
-  }
-
 
 
   
