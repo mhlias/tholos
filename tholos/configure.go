@@ -19,7 +19,7 @@ type Tholos_config struct {
 	Project_config_file string `yaml:"project_config_file"`
 }
 
-func (t *Tholos_config) Configure(force bool) *Tholos_config {
+func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 
 	tholos_config := &Tholos_config{}
 
@@ -33,22 +33,38 @@ func (t *Tholos_config) Configure(force bool) *Tholos_config {
 
 	_, fileexists_err := os.Stat(tholos_config_fullpath)
 
+
 	if force || fileexists_err != nil {
 
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Configuring Tholos for the first time.")
-		fmt.Print("Number of directory levels from root of project to where your terraform templates will reside: ")
-		levels, _ := reader.ReadString('\n')
-		levelsint, _ := strconv.ParseInt(strings.TrimRight(levels, "\n"), 10, 32)
-		tholos_config.Levels = int(levelsint)
+		if len(inputs) > 0 {
 
-		fmt.Print("Name of yaml project config file (including .yaml) in project root directory: ")
-		project_config_file, _ := reader.ReadString('\n')
-		tholos_config.Project_config_file = strings.TrimRight(project_config_file, "\n")
+			tmp := strings.Split(inputs[0], ",")
 
-		fmt.Print("Name of directory your terraform remote modules will be stored in: ")
-		tf_modules_dir, _ := reader.ReadString('\n')
-		tholos_config.Tf_modules_dir = strings.TrimRight(tf_modules_dir, "\n")
+			levelsint, _ := strconv.ParseInt(tmp[0], 10, 32)
+			tholos_config.Levels = int(levelsint)
+
+			tholos_config.Project_config_file = tmp[2]
+			tholos_config.Tf_modules_dir = tmp[1]			
+
+		} else {
+
+
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("Configuring Tholos for the first time.")
+			fmt.Print("Number of directory levels from root of project to where your terraform templates will reside: ")
+			levels, _ := reader.ReadString('\n')
+			levelsint, _ := strconv.ParseInt(strings.TrimRight(levels, "\n"), 10, 32)
+			tholos_config.Levels = int(levelsint)
+
+			fmt.Print("Name of yaml project config file (including .yaml) in project root directory: ")
+			project_config_file, _ := reader.ReadString('\n')
+			tholos_config.Project_config_file = strings.TrimRight(project_config_file, "\n")
+
+			fmt.Print("Name of directory your terraform remote modules will be stored in: ")
+			tf_modules_dir, _ := reader.ReadString('\n')
+			tholos_config.Tf_modules_dir = strings.TrimRight(tf_modules_dir, "\n")
+
+		}
 
 		yaml_out, marshal_err := yaml.Marshal(tholos_config)
 

@@ -52,22 +52,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	project_config := new(conf)
-
 	dir_levels := strings.Repeat("../", tholos_conf.Levels)
 
-	configFile, _ := filepath.Abs(fmt.Sprintf("%s%s", dir_levels, tholos_conf.Project_config_file))
-	yamlConf, file_err := ioutil.ReadFile(configFile)
-
-	if file_err != nil {
-		log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
-	}
-
-	yaml_err := yaml.Unmarshal(yamlConf, &project_config)
-
-	if yaml_err != nil {
-		log.Fatal(yaml_err)
-	}
+	project_config := load_config(fmt.Sprintf("%s%s", dir_levels, tholos_conf.Project_config_file))
 
 	curr_dir, err := os.Getwd()
 
@@ -176,3 +163,29 @@ func main() {
 	}
 
 }
+
+
+func load_config(project_config_file string) *conf {
+
+  project_config := &conf{}
+
+  configFile, _ := filepath.Abs(project_config_file)
+  yamlConf, file_err := ioutil.ReadFile(configFile)
+
+  if file_err != nil {
+    log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
+  }
+
+  yaml_err := yaml.Unmarshal(yamlConf, &project_config)
+
+  if yaml_err != nil {
+    log.Fatal(yaml_err)
+  }
+
+  return project_config
+
+}
+
+
+
+

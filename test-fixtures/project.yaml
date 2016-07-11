@@ -1,0 +1,9 @@
+---
+
+project: test
+region: eu-west-1
+root-profile: root
+roam-role: roam-role
+accounts-mapping:
+    test-dev: 1001
+    test-prd: 1002
