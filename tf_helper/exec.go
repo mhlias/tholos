@@ -1,15 +1,12 @@
 package tf_helper
 
-
-
 import (
+	"bufio"
+	"fmt"
 	"log"
 	"os/exec"
-	"bufio"
 	"strings"
-
 )
-
 
 func ExecCmd(cmdName string, args []string) bool {
 
@@ -34,14 +31,14 @@ func ExecCmd(cmdName string, args []string) bool {
 	scanner := bufio.NewScanner(cmdReader)
 	go func() {
 		for scanner.Scan() {
-			log.Println(scanner.Text())
+			fmt.Println(scanner.Text())
 		}
 	}()
 
 	errorScanner := bufio.NewScanner(cmdErrorReader)
 	go func() {
 		for errorScanner.Scan() {
-			log.Println(errorScanner.Text())
+			fmt.Println(errorScanner.Text())
 		}
 	}()
 
@@ -53,11 +50,10 @@ func ExecCmd(cmdName string, args []string) bool {
 
 	err = cmd.Wait()
 	if err != nil {
-	  success = false
+		success = false
 		log.Printf("Error waiting for Command: %s, Error: %s\n", cmdName, err.Error())
 	}
 
 	return success
-
 
 }

@@ -4,14 +4,11 @@ import (
 	"log"
 )
 
-
-
-
 func (c *Config) Apply() {
 
 	cmd_name := "terraform"
 
-	exec_args := []string { "apply", "plans/plan.tfplan" }
+	exec_args := []string{"apply", "plans/plan.tfplan"}
 
 	log.Println("[INFO] Applying Terraform plan.")
 
