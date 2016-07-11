@@ -24,6 +24,8 @@ type Config struct {
 	Role       string
 	Account_id string
 	Use_mfa    bool
+  Mfa_device_id string
+  Mfa_token string
 }
 
 func (c *Config) Connect() interface{} {
@@ -57,6 +59,8 @@ func (c *Config) Connect() interface{} {
 			RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
 			RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
 			DurationSeconds: aws.Int64(3600),
+      SerialNumber: aws.String(c.Mfa_device_id),
+      TokenCode: aws.String(c.Mfa_token),
 		}
 
 	} else {

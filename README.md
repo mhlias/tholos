@@ -96,6 +96,8 @@ The tool accepts the following parameters:
 
 ```
 
+If you have setup MFA access to your AWS accounts as a requirement, then you can set environment variables `MFA_DEVICE_ID` and `MFA_TOKEN` to the mfa device id registered with your iam user and the current mfa token respectively.
+
 
 ### Limitations
 
