@@ -21,7 +21,6 @@ import (
 type conf struct {
 	Project          string
 	Region           string
-	Root_profile     string            `yaml:"root-profile"`
 	Roam_role        string            `yaml:"roam-role"`
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
 	environment      string
@@ -76,21 +75,21 @@ func main() {
 	project_config.account = tmp[len(tmp)-2]
 
 	mfa_device_id := os.Getenv("MFA_DEVICE_ID")
-  mfa_token := ""
+	mfa_token := ""
 
 	if len(mfa_device_id) <= 0 {
 		log.Println("[INFO] No mfa device id is set in the env. Set `MFA_DEVICE_ID` in your environment if you want to use one.")
 		use_mfa = false
 	} else {
-    log.Printf("[INFO] MFA device with id: %s was detected in the environment. Using it.\n", mfa_device_id)
-    mfa_token = os.Getenv("MFA_TOKEN")
-    if len(mfa_token) >= 0 {
-      use_mfa = true
-    } else {
-      use_mfa = false
-      log.Println("[INFO] No mfa token was provided in the env. Set `MFA_TOKEN` in your environment if you want to use one.")
-    }
-  }
+		log.Printf("[INFO] MFA device with id: %s was detected in the environment. Using it.\n", mfa_device_id)
+		mfa_token = os.Getenv("MFA_TOKEN")
+		if len(mfa_token) >= 0 {
+			use_mfa = true
+		} else {
+			use_mfa = false
+			log.Println("[INFO] No mfa token was provided in the env. Set `MFA_TOKEN` in your environment if you want to use one.")
+		}
+	}
 
 	if len(project_config.Project) <= 0 {
 		log.Fatal("[ERROR] No project is set in your project.yaml configuration.")
@@ -115,13 +114,14 @@ func main() {
 
 	if !*modulesPtr {
 
-		awsconf := &aws_helper.Config{Region: project_config.Region,
-			Profile:    project_config.Root_profile,
-			Role:       project_config.Roam_role,
-			Account_id: project_config.Accounts_mapping[project_config.account],
-			Use_mfa:    use_mfa,
-      Mfa_device_id: mfa_device_id,
-      Mfa_token: mfa_token,
+		awsconf := &aws_helper.Config{
+			Region:        project_config.Region,
+			Profile:       tholos_conf.Root_profile,
+			Role:          project_config.Roam_role,
+			Account_id:    project_config.Accounts_mapping[project_config.account],
+			Use_mfa:       use_mfa,
+			Mfa_device_id: mfa_device_id,
+			Mfa_token:     mfa_token,
 		}
 
 		client = awsconf.Connect()
@@ -164,28 +164,23 @@ func main() {
 
 }
 
-
 func load_config(project_config_file string) *conf {
 
-  project_config := &conf{}
+	project_config := &conf{}
 
-  configFile, _ := filepath.Abs(project_config_file)
-  yamlConf, file_err := ioutil.ReadFile(configFile)
+	configFile, _ := filepath.Abs(project_config_file)
+	yamlConf, file_err := ioutil.ReadFile(configFile)
 
-  if file_err != nil {
-    log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
-  }
+	if file_err != nil {
+		log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
+	}
 
-  yaml_err := yaml.Unmarshal(yamlConf, &project_config)
+	yaml_err := yaml.Unmarshal(yamlConf, &project_config)
 
-  if yaml_err != nil {
-    log.Fatal(yaml_err)
-  }
+	if yaml_err != nil {
+		log.Fatal(yaml_err)
+	}
 
-  return project_config
+	return project_config
 
 }
-
-
-
-

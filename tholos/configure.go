@@ -17,6 +17,7 @@ type Tholos_config struct {
 	Levels              int    `yaml:"levels"`
 	Tf_modules_dir      string `yaml:"tf_modules_dir"`
 	Project_config_file string `yaml:"project_config_file"`
+	Root_profile        string `yaml:"root_profile"`
 }
 
 func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
@@ -33,7 +34,6 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 
 	_, fileexists_err := os.Stat(tholos_config_fullpath)
 
-
 	if force || fileexists_err != nil {
 
 		if len(inputs) > 0 {
@@ -44,10 +44,10 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 			tholos_config.Levels = int(levelsint)
 
 			tholos_config.Project_config_file = tmp[2]
-			tholos_config.Tf_modules_dir = tmp[1]			
+			tholos_config.Tf_modules_dir = tmp[1]
+			tholos_config.Root_profile = tmp[3]
 
 		} else {
-
 
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Println("Configuring Tholos for the first time.")
@@ -63,6 +63,10 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 			fmt.Print("Name of directory your terraform remote modules will be stored in: ")
 			tf_modules_dir, _ := reader.ReadString('\n')
 			tholos_config.Tf_modules_dir = strings.TrimRight(tf_modules_dir, "\n")
+
+			fmt.Print("Name of your root AWS account profile in aws config/credentials: ")
+			root_profile, _ := reader.ReadString('\n')
+			tholos_config.Root_profile = strings.TrimRight(root_profile, "\n")
 
 		}
 
