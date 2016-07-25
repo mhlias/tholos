@@ -24,6 +24,7 @@ type Config struct {
 	Role          string
 	Account_id    string
 	Use_mfa       bool
+	Use_sts       bool
 	Mfa_device_id string
 	Mfa_token     string
 }
@@ -40,6 +41,8 @@ func (c *Config) Connect() interface{} {
 
 	screds := &credentials.SharedCredentialsProvider{Profile: c.Profile}
 
+	log.Printf("[INFO] Using aws shared credentials profile: %s\n", c.Profile)
+
 	awsConfig := &aws.Config{
 		Credentials: credentials.NewCredentials(screds),
 		Region:      aws.String(c.Region),
@@ -48,44 +51,65 @@ func (c *Config) Connect() interface{} {
 
 	sess := session.New(awsConfig)
 
-	log.Println("[INFO] Initializing STS Connection")
-	client.stsconn = sts.New(sess)
+	if c.Use_sts {
 
-	params := &sts.AssumeRoleInput{}
+		log.Println("[INFO] Initializing STS Connection")
+		client.stsconn = sts.New(sess)
 
-	if c.Use_mfa {
+		params := &sts.AssumeRoleInput{}
 
-		params = &sts.AssumeRoleInput{
-			RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
-			RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
-			DurationSeconds: aws.Int64(3600),
-			SerialNumber:    aws.String(c.Mfa_device_id),
-			TokenCode:       aws.String(c.Mfa_token),
+		if c.Use_mfa {
+
+			params = &sts.AssumeRoleInput{
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				DurationSeconds: aws.Int64(3600),
+				SerialNumber:    aws.String(c.Mfa_device_id),
+				TokenCode:       aws.String(c.Mfa_token),
+			}
+
+		} else {
+
+			params = &sts.AssumeRoleInput{
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				DurationSeconds: aws.Int64(3600),
+			}
+
 		}
+
+		sts_resp, sts_err := client.stsconn.AssumeRole(params)
+
+		if sts_err != nil {
+			log.Fatalf("Unable to assume role: %v", sts_err.Error())
+		}
+
+		os.Setenv("AWS_ACCESS_KEY_ID", *sts_resp.Credentials.AccessKeyId)
+		os.Setenv("AWS_SECRET_ACCESS_KEY", *sts_resp.Credentials.SecretAccessKey)
+		os.Setenv("AWS_SECURITY_TOKEN", *sts_resp.Credentials.SessionToken)
+		os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
+		os.Setenv("AWS_DEFAULT_REGION", c.Region)
+
+		return c.assumeConnect(sts_resp)
 
 	} else {
 
-		params = &sts.AssumeRoleInput{
-			RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
-			RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
-			DurationSeconds: aws.Int64(3600),
+		profile_creds := credentials.Value{}
+		var profile_err error
+
+		if profile_creds, profile_err = screds.Retrieve(); profile_err != nil {
+			log.Fatalf("[ERROR] Failed to get aws credentials for profile: %s with error: %s\n", c.Profile, profile_err.Error())
 		}
 
+		os.Setenv("AWS_ACCESS_KEY_ID", profile_creds.AccessKeyID)
+		os.Setenv("AWS_SECRET_ACCESS_KEY", profile_creds.SecretAccessKey)
+		os.Setenv("AWS_DEFAULT_REGION", c.Region)
 	}
 
-	sts_resp, sts_err := client.stsconn.AssumeRole(params)
+	log.Println("[INFO] Initializing S3 Connection")
+	client.S3conn = s3.New(sess)
 
-	if sts_err != nil {
-		log.Fatalf("Unable to assume role: %v", sts_err.Error())
-	}
-
-	os.Setenv("AWS_ACCESS_KEY_ID", *sts_resp.Credentials.AccessKeyId)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", *sts_resp.Credentials.SecretAccessKey)
-	os.Setenv("AWS_SECURITY_TOKEN", *sts_resp.Credentials.SessionToken)
-	os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
-	os.Setenv("AWS_DEFAULT_REGION", c.Region)
-
-	return c.assumeConnect(sts_resp)
+	return &client
 
 }
 

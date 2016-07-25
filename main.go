@@ -23,6 +23,7 @@ type conf struct {
 	Region           string
 	Roam_role        string            `yaml:"roam-role"`
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
+	Use_sts          bool              `yaml:"use-sts"`
 	environment      string
 	account          string
 }
@@ -114,12 +115,19 @@ func main() {
 
 	if !*modulesPtr {
 
+		profile := project_config.account
+
+		if project_config.Use_sts {
+			profile = tholos_conf.Root_profile
+		}
+
 		awsconf := &aws_helper.Config{
 			Region:        project_config.Region,
-			Profile:       tholos_conf.Root_profile,
+			Profile:       profile,
 			Role:          project_config.Roam_role,
 			Account_id:    project_config.Accounts_mapping[project_config.account],
 			Use_mfa:       use_mfa,
+			Use_sts:       project_config.Use_sts,
 			Mfa_device_id: mfa_device_id,
 			Mfa_token:     mfa_token,
 		}
@@ -172,7 +180,7 @@ func load_config(project_config_file string) *conf {
 	yamlConf, file_err := ioutil.ReadFile(configFile)
 
 	if file_err != nil {
-		log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
+		log.Fatalln("[ERROR] File does not exist or not accessible: ", file_err)
 	}
 
 	yaml_err := yaml.Unmarshal(yamlConf, &project_config)
