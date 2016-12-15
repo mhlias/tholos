@@ -40,7 +40,7 @@ func (c *Config) Plan(tholos_conf *tholos.Tholos_config) {
 
 	c.Setup_remote_state()
 
-	exec_args = []string{"plan", "-module-depth=1", "-refresh=true", "-out=plans/plan.tfplan", "-var-file=params/env.tfvars"}
+	exec_args = []string{"plan", "-module-depth=3", "-refresh=true", "-out=plans/plan.tfplan", "-var-file=params/env.tfvars"}
 
 	log.Println("[INFO] Running Terraform plan.")
 
