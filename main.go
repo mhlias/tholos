@@ -24,6 +24,7 @@ type conf struct {
 	Roam_role        string            `yaml:"roam-role"`
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
 	Use_sts          bool              `yaml:"use-sts"`
+	Encrypt_s3_state bool              `yaml:"encrypt-s3-state"`
 	environment      string
 	account          string
 }
@@ -101,8 +102,9 @@ func main() {
 	}
 
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
-		State_filename: fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
-		Versioning:     true,
+		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
+		Versioning:       true,
+		Encrypt_s3_state: project_config.Encrypt_s3_state,
 	}
 
 	modules := &tf_helper.Modules{}
