@@ -10,9 +10,10 @@ import (
 )
 
 type Config struct {
-	Bucket_name    string
-	State_filename string
-	Versioning     bool
+	Bucket_name      string
+	State_filename   string
+	Encrypt_s3_state bool
+	Versioning       bool
 }
 
 func (c *Config) Create_bucket(client interface{}) bool {
@@ -107,6 +108,7 @@ func (c *Config) Setup_remote_state() {
 		"-backend=S3",
 		fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
 		fmt.Sprintf("-backend-config=key=%s", c.State_filename),
+		fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
 	}
 
 	if ExecCmd(cmdName, args) {

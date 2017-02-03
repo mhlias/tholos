@@ -4,6 +4,7 @@ project: test
 region: eu-west-1
 roam-role: roam-role
 use-sts: true
+encrypt-s3-state: true
 accounts-mapping:
     test-dev: 1001
     test-prd: 1002

@@ -35,6 +35,7 @@ project: name_of_your_project
 region: eu-west-1
 roam-role: roam-role
 use-sts: true
+encrypt-s3-state: true
 accounts-mapping:
     project-dev: 100000000001
     project-prd: 100000000002
@@ -44,6 +45,7 @@ accounts-mapping:
 - `region` is the AWS region your project will be deployed into
 - `roam-role` is the AWS IAM role that you can assume in the project's AWS accounts *1
 - `use-sts` is a boolean value that enables or disables STS authentication. If not enabled a profile name matching project-dev/prd is expected to be found in your AWS shared credentials file with access and secret keys.
+- `encrypt-s3-state` is a boolean value that enables or disables S3 remote state server side encryption.
 - `accounts-mapping` is a hash mapping your account-dev/prd used in the project to their AWS account IDS which is needed to assume roles and get STS tokens
 
 
