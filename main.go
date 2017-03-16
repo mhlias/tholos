@@ -21,7 +21,7 @@ import (
 type conf struct {
 	Project          string
 	Region           string
-	Roam_role        string            `yaml:"roam-role"`
+	Roam_roles       map[string]string `yaml:"roam-roles"`
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
 	Use_sts          bool              `yaml:"use-sts"`
 	Encrypt_s3_state bool              `yaml:"encrypt-s3-state"`
@@ -126,7 +126,7 @@ func main() {
 		awsconf := &aws_helper.Config{
 			Region:        project_config.Region,
 			Profile:       profile,
-			Role:          project_config.Roam_role,
+			Role:          project_config.Roam_roles[project_config.account],
 			Account_id:    project_config.Accounts_mapping[project_config.account],
 			Use_mfa:       use_mfa,
 			Use_sts:       project_config.Use_sts,
