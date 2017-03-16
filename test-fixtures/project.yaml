@@ -2,7 +2,9 @@
 
 project: test
 region: eu-west-1
-roam-role: roam-role
+roam-roles:
+  test-dev: roam-role-dev
+  test-prd: roam-role-prd
 use-sts: true
 encrypt-s3-state: true
 accounts-mapping:

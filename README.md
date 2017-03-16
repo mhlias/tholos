@@ -33,7 +33,9 @@ From the files mentioned above here are some examples of what their contents nee
 ```
 project: name_of_your_project
 region: eu-west-1
-roam-role: roam-role
+roam-roles:
+	  project-dev: roam-role-dev
+		project-prd: roam-role-prd
 use-sts: true
 encrypt-s3-state: true
 accounts-mapping:
