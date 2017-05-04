@@ -29,6 +29,19 @@ type conf struct {
 	account          string
 }
 
+type multiflag []string
+
+func (d *multiflag) String() string {
+	return fmt.Sprintf("%d", *d)
+}
+
+func (d *multiflag) Set(value string) error {
+	*d = append(*d, value)
+	return nil
+}
+
+var targetsTF multiflag
+
 func main() {
 
 	use_mfa := true
@@ -40,6 +53,7 @@ func main() {
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
 	configPtr := flag.Bool("c", false, "Force reconfiguration of Tholos")
+	flag.Var(&targetsTF, "t", "Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)")
 
 	flag.Parse()
 
@@ -105,6 +119,7 @@ func main() {
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
 		Versioning:       true,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
+		TargetsTF:        targetsTF,
 	}
 
 	modules := &tf_helper.Modules{}

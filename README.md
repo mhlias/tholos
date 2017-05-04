@@ -12,7 +12,7 @@ This tool wraps terraform execution forcing a specific structure while providing
 	- Creates an S3 bucket in the current account and enables versioning.
 	- Configures remote terraform state on the created S3 bucket.
 	- Provides management of remote git/github terraform modules using the Terrafile concept.
-	- Provides plan and apply functionality and keeps the local & remote states in sync.
+	- Provides plan and apply functionality with resources target support and keeps the local & remote states in sync.
 
 
 ### Setup Requirements
@@ -98,6 +98,7 @@ The tool accepts the following parameters:
   -p	Terraform Plan
   -s	Sync remote S3 state
   -u	Fetch and update modules from remote repo
+	-t  Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)
 
 ```
 

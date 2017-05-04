@@ -14,6 +14,7 @@ type Config struct {
 	State_filename   string
 	Encrypt_s3_state bool
 	Versioning       bool
+	TargetsTF        []string
 }
 
 func (c *Config) Create_bucket(client interface{}) bool {
