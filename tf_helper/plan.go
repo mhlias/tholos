@@ -1,6 +1,7 @@
 package tf_helper
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/mhlias/tholos/tholos"
@@ -41,6 +42,12 @@ func (c *Config) Plan(tholos_conf *tholos.Tholos_config) {
 	c.Setup_remote_state()
 
 	exec_args = []string{"plan", "-module-depth=3", "-refresh=true", "-out=plans/plan.tfplan", "-var-file=params/env.tfvars"}
+
+	if len(c.TargetsTF) > 0 {
+		for _, t := range c.TargetsTF {
+			exec_args = append(exec_args, fmt.Sprintf("-target=%s", t))
+		}
+	}
 
 	log.Println("[INFO] Running Terraform plan.")
 
