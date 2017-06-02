@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +28,7 @@ type conf struct {
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
 	Use_sts          bool              `yaml:"use-sts"`
 	Encrypt_s3_state bool              `yaml:"encrypt-s3-state"`
+	Parallelism      int16             `yaml:"parallelism"`
 	environment      string
 	account          string
 }
@@ -115,11 +119,30 @@ func main() {
 		fmt.Sprintf("%s-prd", project_config.Project): true,
 	}
 
+	tf_version := get_tf_version()
+
+	tf_legacy := true
+
+	ver_int, _ := strconv.Atoi(strings.Split(tf_version, ".")[1])
+
+	if ver_int > 8 {
+		tf_legacy = false
+	} else {
+		log.Printf("[WARN] Running in legacy mode, current Terraform version: %s, install >=0.9.x for full features.\n", tf_version)
+	}
+
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
 		Versioning:       true,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
+		TFlegacy:         tf_legacy,
+	}
+
+	var tf_parallelism int16 = 10
+
+	if &project_config.Parallelism != nil && project_config.Parallelism > 0 {
+		tf_parallelism = project_config.Parallelism
 	}
 
 	modules := &tf_helper.Modules{}
@@ -178,7 +201,7 @@ func main() {
 		}
 
 	} else if *planPtr {
-		state_config.Plan(tholos_conf)
+		state_config.Plan(tholos_conf, tf_parallelism)
 	} else if *modulesPtr {
 		modules.Fetch_modules(tholos_conf)
 	} else if *outputsPtr {
@@ -208,4 +231,23 @@ func load_config(project_config_file string) *conf {
 
 	return project_config
 
+}
+
+func get_tf_version() string {
+
+	cmd := exec.Command("terraform", "version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal("Failed to get Terraform version, please make sure terraform is installed and in the path", err)
+	}
+
+	out_str := out.String()
+
+	start := strings.Index(out_str, "v")
+
+	ver := out_str[start : start+6]
+
+	return ver
 }
