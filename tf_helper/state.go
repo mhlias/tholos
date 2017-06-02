@@ -15,6 +15,7 @@ type Config struct {
 	Encrypt_s3_state bool
 	Versioning       bool
 	TargetsTF        []string
+	TFlegacy         bool
 }
 
 func (c *Config) Create_bucket(client interface{}) bool {
@@ -95,6 +96,10 @@ func (c *Config) enable_versioning(client interface{}) bool {
 	}
 
 	return true
+
+}
+
+func (c *Config) setup_lock_DB() {
 
 }
 

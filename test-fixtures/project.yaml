@@ -10,3 +10,4 @@ encrypt-s3-state: true
 accounts-mapping:
     test-dev: 1001
     test-prd: 1002
+parallelism: 4
