@@ -134,7 +134,9 @@ func main() {
 
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
+		Lock_table:       fmt.Sprintf("%s-%s-%s-locktable", project_config.Project, project_config.account, project_config.environment),
 		Versioning:       true,
+		Region:           project_config.Region,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
 		TFlegacy:         tf_legacy,
@@ -193,6 +195,21 @@ func main() {
 
 			time.Sleep(time.Duration(i) * time.Second)
 
+		}
+
+		if !tf_legacy {
+			for i := 1; i <= retries; i++ {
+
+				if !state_config.Create_locktable(client) {
+					log.Printf("[WARN] DynamoDB table %s failed to be created. Retrying.\n", state_config.Lock_table)
+				} else {
+					log.Printf("[INFO] DynamoDB table %s created.\n", state_config.Lock_table)
+					break
+				}
+
+				time.Sleep(time.Duration(i) * time.Second)
+
+			}
 		}
 
 		if bucket_created {

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mhlias/tholos/aws_helper"
 )
@@ -12,10 +13,12 @@ import (
 type Config struct {
 	Bucket_name      string
 	State_filename   string
+	Lock_table       string
 	Encrypt_s3_state bool
 	Versioning       bool
 	TargetsTF        []string
 	TFlegacy         bool
+	Region           string
 }
 
 func (c *Config) Create_bucket(client interface{}) bool {
@@ -99,7 +102,50 @@ func (c *Config) enable_versioning(client interface{}) bool {
 
 }
 
-func (c *Config) setup_lock_DB() {
+func (c *Config) Create_locktable(client interface{}) bool {
+
+	params := &dynamodb.ListTablesInput{
+		ExclusiveStartTableName: aws.String(c.Lock_table),
+	}
+
+	resp, err := client.(*aws_helper.AWSClient).Dynconn.ListTables(params)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return false
+	}
+
+	if len(resp.TableNames) > 0 {
+		return true
+	}
+
+	params2 := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("LockID"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("LockID"),
+				KeyType:       aws.String("HASH"),
+			},
+		},
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(5),
+			WriteCapacityUnits: aws.Int64(5),
+		},
+		TableName: aws.String(c.Lock_table),
+	}
+	_, err2 := client.(*aws_helper.AWSClient).Dynconn.CreateTable(params2)
+
+	if err2 != nil {
+		fmt.Println(err2.Error())
+		return false
+	}
+
+	return true
 
 }
 
@@ -109,12 +155,30 @@ func (c *Config) Setup_remote_state() {
 
 	cmdName := "terraform"
 
-	args := []string{"remote",
-		"config",
-		"-backend=S3",
-		fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
-		fmt.Sprintf("-backend-config=key=%s", c.State_filename),
-		fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
+	var args []string
+
+	if c.TFlegacy {
+
+		args = []string{"remote",
+			"config",
+			"-backend=S3",
+			fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
+			fmt.Sprintf("-backend-config=key=%s", c.State_filename),
+			fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
+		}
+
+	} else {
+
+		args = []string{"init",
+			"-backend=true",
+			fmt.Sprintf("-backend-config='bucket=%s'", c.Bucket_name),
+			fmt.Sprintf("-backend-config='key=%s'", c.State_filename),
+			fmt.Sprintf("-backend-config='region=%s'", c.Region),
+			fmt.Sprintf("-backend-config='lock_table=%s'", c.Lock_table),
+			fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
+			"-force-copy",
+		}
+
 	}
 
 	if ExecCmd(cmdName, args) {
