@@ -179,6 +179,25 @@ func main() {
 
 	}
 
+	if *syncPtr || *planPtr || *applyPtr {
+
+		if !state_config.TFlegacy {
+			for j := 1; j <= retries; j++ {
+
+				if !state_config.Create_locktable(client) {
+					log.Printf("[WARN] DynamoDB table %s failed to be created. Retrying.\n", state_config.Lock_table)
+				} else {
+					log.Printf("[INFO] DynamoDB table %s created.\n", state_config.Lock_table)
+					break
+				}
+
+				time.Sleep(time.Duration(j) * time.Second)
+
+			}
+		}
+
+	}
+
 	if *syncPtr {
 
 		bucket_created := false
@@ -195,21 +214,6 @@ func main() {
 
 			time.Sleep(time.Duration(i) * time.Second)
 
-		}
-
-		if !tf_legacy {
-			for i := 1; i <= retries; i++ {
-
-				if !state_config.Create_locktable(client) {
-					log.Printf("[WARN] DynamoDB table %s failed to be created. Retrying.\n", state_config.Lock_table)
-				} else {
-					log.Printf("[INFO] DynamoDB table %s created.\n", state_config.Lock_table)
-					break
-				}
-
-				time.Sleep(time.Duration(i) * time.Second)
-
-			}
 		}
 
 		if bucket_created {
