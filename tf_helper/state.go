@@ -1,8 +1,11 @@
 package tf_helper
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"os/exec"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -18,6 +21,7 @@ type Config struct {
 	Versioning       bool
 	TargetsTF        []string
 	TFlegacy         bool
+	TFenv            string
 	Region           string
 }
 
@@ -149,6 +153,64 @@ func (c *Config) Create_locktable(client interface{}) bool {
 
 }
 
+func (c *Config) Switch_env() {
+
+	var args []string
+	env_exists := false
+
+	cmdList := exec.Command("terraform", "env", "list")
+	var out bytes.Buffer
+	cmdList.Stdout = &out
+	err := cmdList.Run()
+	if err != nil {
+		log.Fatal("Failed to get Terraform state environments list:", err)
+	}
+
+	out_str := out.String()
+
+	tfenvs := strings.Split(out_str, "\n")
+
+	for _, e := range tfenvs {
+		if e == strings.Trim(c.TFenv, "* ") {
+			env_exists = true
+			break
+		}
+	}
+
+	if !env_exists {
+
+		cmdCreate := "terraform"
+
+		args = []string{
+			"env",
+			"new",
+			c.TFenv,
+		}
+
+		if ExecCmd(cmdCreate, args) {
+			log.Printf("[INFO] Terraform state environment %s created.", c.TFenv)
+		} else {
+			log.Fatal("[ERROR] Failed create Terraform state environment. Aborting.\n")
+		}
+
+	}
+
+	cmdSelect := "terraform"
+
+	args = []string{
+		"env",
+		"select",
+		c.TFenv,
+	}
+
+	if ExecCmd(cmdSelect, args) {
+		log.Printf("[INFO] Terraform state environment %s selected.", c.TFenv)
+	} else {
+		log.Fatal("[ERROR] Failed select Terraform state environment. Aborting.\n")
+	}
+
+}
+
 func (c *Config) Setup_remote_state() {
 
 	//log.Printf("[INFO] Environment variables: %s, %s, %s, %s", os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), os.Getenv("AWS_SECURITY_TOKEN"), os.Getenv("AWS_DEFAULT_REGION") )
@@ -184,7 +246,7 @@ func (c *Config) Setup_remote_state() {
 	if ExecCmd(cmdName, args) {
 		log.Println("[INFO] Remote State was set up successfully.")
 	} else {
-		log.Fatal("[INFO] Remote state failed to be set up. Aborting.\n")
+		log.Fatal("[ERROR] Remote state failed to be set up. Aborting.\n")
 	}
 
 }
