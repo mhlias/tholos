@@ -117,6 +117,7 @@ func main() {
 
 	accounts := map[string]bool{fmt.Sprintf("%s-dev", project_config.Project): true,
 		fmt.Sprintf("%s-prd", project_config.Project): true,
+		fmt.Sprintf("%s", project_config.account):     true,
 	}
 
 	tf_version := get_tf_version()
