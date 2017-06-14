@@ -41,14 +41,16 @@ encrypt-s3-state: true
 accounts-mapping:
     project-dev: 100000000001
     project-prd: 100000000002
+parallelism: 10
 
 ```
-- `project` should match the name of your AWS accounts without -dev/prd
+- `project` should match the name of your AWS account with any -suffix allowed
 - `region` is the AWS region your project will be deployed into
 - `roam-role` is the AWS IAM role that you can assume in the project's AWS accounts *1
-- `use-sts` is a boolean value that enables or disables STS authentication. If not enabled a profile name matching project-dev/prd is expected to be found in your AWS shared credentials file with access and secret keys.
+- `use-sts` is a boolean value that enables or disables STS authentication. If not enabled a profile name matching project-%suffix% is expected to be found in your AWS shared credentials file with access and secret keys.
 - `encrypt-s3-state` is a boolean value that enables or disables S3 remote state server side encryption.
-- `accounts-mapping` is a hash mapping your account-dev/prd used in the project to their AWS account IDS which is needed to assume roles and get STS tokens
+- `accounts-mapping` is a hash mapping your account-%suffix% used in the project to their AWS account IDS which is needed to assume roles and get STS tokens
+- `parallelism` is the Terraform parallelism setting for refresh of the plan defaults to 10 if omitted
 
 
 *1 More information on how to setup AWS assume roles can be found here: [tutorial] (http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) [To create a role for cross-account access (AWS CLI)] (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html#roles-creatingrole-user-cli)
