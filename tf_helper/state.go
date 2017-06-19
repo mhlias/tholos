@@ -108,9 +108,7 @@ func (c *Config) enable_versioning(client interface{}) bool {
 
 func (c *Config) Create_locktable(client interface{}) bool {
 
-	params := &dynamodb.ListTablesInput{
-		ExclusiveStartTableName: aws.String(c.Lock_table),
-	}
+	params := &dynamodb.ListTablesInput{}
 
 	resp, err := client.(*aws_helper.AWSClient).Dynconn.ListTables(params)
 
@@ -119,8 +117,10 @@ func (c *Config) Create_locktable(client interface{}) bool {
 		return false
 	}
 
-	if len(resp.TableNames) > 0 {
-		return true
+	for _, dt := range resp.TableNames {
+		if *dt == c.Lock_table {
+			return true
+		}
 	}
 
 	params2 := &dynamodb.CreateTableInput{
@@ -171,7 +171,7 @@ func (c *Config) Switch_env() {
 	tfenvs := strings.Split(out_str, "\n")
 
 	for _, e := range tfenvs {
-		if e == strings.Trim(c.TFenv, "* ") {
+		if c.TFenv == strings.Trim(e, "* ") {
 			env_exists = true
 			break
 		}
@@ -233,10 +233,10 @@ func (c *Config) Setup_remote_state() {
 
 		args = []string{"init",
 			"-backend=true",
-			fmt.Sprintf("-backend-config='bucket=%s'", c.Bucket_name),
-			fmt.Sprintf("-backend-config='key=%s'", c.State_filename),
-			fmt.Sprintf("-backend-config='region=%s'", c.Region),
-			fmt.Sprintf("-backend-config='lock_table=%s'", c.Lock_table),
+			fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
+			fmt.Sprintf("-backend-config=key=%s", c.State_filename),
+			fmt.Sprintf("-backend-config=region=%s", c.Region),
+			fmt.Sprintf("-backend-config=lock_table=%s", c.Lock_table),
 			fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
 			"-force-copy",
 		}
