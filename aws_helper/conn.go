@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -15,6 +16,7 @@ import (
 type AWSClient struct {
 	stsconn *sts.STS
 	S3conn  *s3.S3
+	Dynconn *dynamodb.DynamoDB
 	region  string
 }
 
@@ -108,6 +110,7 @@ func (c *Config) Connect() interface{} {
 
 	log.Println("[INFO] Initializing S3 Connection")
 	client.S3conn = s3.New(sess)
+	client.Dynconn = dynamodb.New(sess)
 
 	return &client
 
@@ -127,6 +130,7 @@ func (c *Config) assumeConnect(sts *sts.AssumeRoleOutput) interface{} {
 
 	log.Println("[INFO] Initializing S3 Connection")
 	client.S3conn = s3.New(sess)
+	client.Dynconn = dynamodb.New(sess)
 
 	return &client
 

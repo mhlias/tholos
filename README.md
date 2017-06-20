@@ -11,8 +11,11 @@ This tool wraps terraform execution forcing a specific structure while providing
 	- Gets STS tokens and uses them for the current account.
 	- Creates an S3 bucket in the current account and enables versioning.
 	- Configures remote terraform state on the created S3 bucket.
+	- Creates a DynamoDB lock table and uses it to lock remote S3 state (Terraform 0.9.x only)
 	- Provides management of remote git/github terraform modules using the Terrafile concept.
 	- Provides plan and apply functionality with resources target support and keeps the local & remote states in sync.
+	- Support for Terraform 0.9.x and legacy mode with version autodetection
+	- Support for Terraform state environments (created if not exist already) with Terraform 0.9.x versions
 
 
 ### Setup Requirements
@@ -24,6 +27,15 @@ Configuration input required:
 	- Name of your project config yaml file: This file will reside on the root directory of your project and needs to be `%name.yaml` which `%name` you specify in this stage.
 	- Directory name of your terraform modules: This will be always created a level down of the root of your project and will be used by the Terrafile concept to store your project's modules. Will also be the modules source in your terraform templates.
 	- Root profile, is your `$HOME/.aws/credentials` profile name that can assume roles on your AWS accounts
+	- With Terraform 0.9.x you need to include in a .tf file the following terraform block:
+
+	```
+	terraform {
+	    required_version = ">= 0.9.0"
+	    backend "s3" {}
+	}
+
+	```
 
 
 From the files mentioned above here are some examples of what their contents need to be:
@@ -96,11 +108,12 @@ The tool accepts the following parameters:
 ```
   -a	Terraform Apply Plan
   -c	Force reconfiguration of Tholos
+  -e  Terraform state environment to use
   -o	Display Terraform outputs
   -p	Terraform Plan
   -s	Sync remote S3 state
+  -t  Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)
   -u	Fetch and update modules from remote repo
-	-t  Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)
 
 ```
 

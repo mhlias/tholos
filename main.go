@@ -57,6 +57,7 @@ func main() {
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
 	configPtr := flag.Bool("c", false, "Force reconfiguration of Tholos")
+	envPtr := flag.String("e", "", "Terraform state environment to use")
 	flag.Var(&targetsTF, "t", "Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)")
 
 	flag.Parse()
@@ -128,16 +129,24 @@ func main() {
 
 	if ver_int > 8 {
 		tf_legacy = false
+		if len(*envPtr) > 0 {
+			log.Printf("[INFO] Will be working on STATE ENVIRONMENT: %s", *envPtr)
+			// Sleep for 5 seconds let the user stop execution if wrong state environment
+			time.Sleep(5 * time.Second)
+		}
 	} else {
 		log.Printf("[WARN] Running in legacy mode, current Terraform version: %s, install >=0.9.x for full features.\n", tf_version)
 	}
 
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
+		Lock_table:       fmt.Sprintf("%s-%s-%s-locktable", project_config.Project, project_config.account, project_config.environment),
 		Versioning:       true,
+		Region:           project_config.Region,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
 		TFlegacy:         tf_legacy,
+		TFenv:            *envPtr,
 	}
 
 	var tf_parallelism int16 = 10
@@ -174,6 +183,30 @@ func main() {
 		}
 
 		client = awsconf.Connect()
+
+	}
+
+	if *syncPtr || *planPtr || *applyPtr {
+
+		if !state_config.TFlegacy {
+
+			if len(*envPtr) > 0 {
+				state_config.Switch_env()
+			}
+
+			for j := 1; j <= retries; j++ {
+
+				if !state_config.Create_locktable(client) {
+					log.Printf("[WARN] DynamoDB table %s failed to be created. Retrying.\n", state_config.Lock_table)
+				} else {
+					log.Printf("[INFO] DynamoDB table %s created.\n", state_config.Lock_table)
+					break
+				}
+
+				time.Sleep(time.Duration(j) * time.Second)
+
+			}
+		}
 
 	}
 
