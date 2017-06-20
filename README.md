@@ -11,6 +11,7 @@ This tool wraps terraform execution forcing a specific structure while providing
 	- Gets STS tokens and uses them for the current account.
 	- Creates an S3 bucket in the current account and enables versioning.
 	- Configures remote terraform state on the created S3 bucket.
+	- Creates a DynamoDB lock table and uses it to lock remote S3 state (Terraform 0.9.x only)
 	- Provides management of remote git/github terraform modules using the Terrafile concept.
 	- Provides plan and apply functionality with resources target support and keeps the local & remote states in sync.
 	- Support for Terraform 0.9.x and legacy mode with version autodetection
