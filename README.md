@@ -45,6 +45,9 @@ From the files mentioned above here are some examples of what their contents nee
 ```
 project: name_of_your_project
 region: eu-west-1
+profiles:
+		project-dev: aws_shared_credentials_profile1
+		project-prd: aws_shared_credentials_profile2
 roam-roles:
 	  project-dev: roam-role-dev
 		project-prd: roam-role-prd
@@ -58,6 +61,7 @@ parallelism: 10
 ```
 - `project` should match the name of your AWS account with any -suffix allowed
 - `region` is the AWS region your project will be deployed into
+- `profiles` is the AWS shared credentials profile to use to assume the role for each account or authenticate if sts is not in use
 - `roam-role` is the AWS IAM role that you can assume in the project's AWS accounts *1
 - `use-sts` is a boolean value that enables or disables STS authentication. If not enabled a profile name matching project-%suffix% is expected to be found in your AWS shared credentials file with access and secret keys.
 - `encrypt-s3-state` is a boolean value that enables or disables S3 remote state server side encryption.

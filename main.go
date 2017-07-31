@@ -24,6 +24,7 @@ import (
 type conf struct {
 	Project          string
 	Region           string
+	Profiles         map[string]string `yaml:"profiles"`
 	Roam_roles       map[string]string `yaml:"roam-roles"`
 	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
 	Use_sts          bool              `yaml:"use-sts"`
@@ -165,15 +166,9 @@ func main() {
 
 	if !*modulesPtr {
 
-		profile := project_config.account
-
-		if project_config.Use_sts {
-			profile = tholos_conf.Root_profile
-		}
-
 		awsconf := &aws_helper.Config{
 			Region:        project_config.Region,
-			Profile:       profile,
+			Profile:       project_config.Profiles[project_config.account],
 			Role:          project_config.Roam_roles[project_config.account],
 			Account_id:    project_config.Accounts_mapping[project_config.account],
 			Use_mfa:       use_mfa,
