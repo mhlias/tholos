@@ -32,6 +32,7 @@ type conf struct {
 	Parallelism      int16             `yaml:"parallelism"`
 	environment      string
 	account          string
+	Secondary        map[string]*aws_helper.Account `yaml:"secondary_accounts"`
 }
 
 type multiflag []string
@@ -175,6 +176,7 @@ func main() {
 			Use_sts:       project_config.Use_sts,
 			Mfa_device_id: mfa_device_id,
 			Mfa_token:     mfa_token,
+			Secondary:     project_config.Secondary[project_config.account],
 		}
 
 		client = awsconf.Connect()

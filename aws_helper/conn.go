@@ -29,6 +29,13 @@ type Config struct {
 	Use_sts       bool
 	Mfa_device_id string
 	Mfa_token     string
+	Secondary     *Account
+}
+
+type Account struct {
+	Account_id string `yaml:"id"`
+	Role       string `yaml:"role"`
+	Region     string `yaml:"region"`
 }
 
 func (c *Config) Connect() interface{} {
@@ -40,6 +47,12 @@ func (c *Config) Connect() interface{} {
 	os.Unsetenv("AWS_SECURITY_TOKEN")
 	os.Unsetenv("AWS_SESSION_TOKEN")
 	os.Unsetenv("AWS_DEFAULT_REGION")
+
+	os.Unsetenv("TF_VAR_secondary_access_key_id")
+	os.Unsetenv("TF_VAR_secondary_secret_access_key")
+	os.Unsetenv("TF_VAR_secondary_security_token")
+	os.Unsetenv("TF_VAR_secondary_session_token")
+	os.Unsetenv("TF_VAR_secondary_region")
 
 	screds := &credentials.SharedCredentialsProvider{Profile: c.Profile}
 
@@ -91,6 +104,28 @@ func (c *Config) Connect() interface{} {
 		os.Setenv("AWS_SECURITY_TOKEN", *sts_resp.Credentials.SessionToken)
 		os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
 		os.Setenv("AWS_DEFAULT_REGION", c.Region)
+
+		if len(c.Secondary.Account_id) > 0 && len(c.Secondary.Role) > 0 && len(c.Secondary.Region) > 0 {
+
+			params2 := &sts.AssumeRoleInput{
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Secondary.Account_id, c.Secondary.Role)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				DurationSeconds: aws.Int64(3600),
+			}
+
+			stssec_resp, stssec_err := client.stsconn.AssumeRole(params2)
+
+			if stssec_err != nil {
+				log.Fatalf("Unable to assume role: %v", stssec_err.Error())
+			}
+
+			os.Setenv("TF_VAR_secondary_access_key_id", *stssec_resp.Credentials.AccessKeyId)
+			os.Setenv("TF_VAR_secondary_secret_access_key", *stssec_resp.Credentials.SecretAccessKey)
+			os.Setenv("TF_VAR_secondary_security_token", *stssec_resp.Credentials.SessionToken)
+			os.Setenv("TF_VAR_secondary_session_token", *stssec_resp.Credentials.SessionToken)
+			os.Setenv("TF_VAR_secondary_region", c.Secondary.Region)
+
+		}
 
 		return c.assumeConnect(sts_resp)
 

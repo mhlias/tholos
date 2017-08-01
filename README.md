@@ -71,6 +71,55 @@ parallelism: 10
 
 *1 More information on how to setup AWS assume roles can be found here: [tutorial] (http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) [To create a role for cross-account access (AWS CLI)] (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html#roles-creatingrole-user-cli)
 
+`Cross-account resources`:
+
+From v0.9.0 there is support for a secondary account per primary account to allow to provision AWS resources across different AWS accounts. Can only be used with STS enabled. A requirement is the AWS shared credentials profile that is used on the primary account to be able to assume the role specified on the secondary account. `project.yaml` configuration example follows:
+
+
+```
+project: name_of_your_project
+region: eu-west-1
+profiles:
+		project-dev: aws_shared_credentials_profile1
+		project-prd: aws_shared_credentials_profile2
+roam-roles:
+	  project-dev: roam-role-dev
+		project-prd: roam-role-prd
+use-sts: true
+encrypt-s3-state: true
+accounts-mapping:
+    project-dev: 100000000001
+    project-prd: 100000000002
+secondary_accounts:
+		project_dev:
+			id: 20001
+			role: secondary-assumed-dev-role
+			region: eu-west-2
+parallelism: 10
+
+```
+
+All of `id`, `role` and `region` are required for each secondary account.
+Then at runtime tholos will export the following environment variables that Terraform can pick up:
+
+- TF_VAR_secondary_access_key_id
+- TF_VAR_secondary_secret_access_key
+- TF_VAR_secondary_security_token
+- TF_VAR_secondary_session_token
+- TF_VAR_secondary_region
+
+From there in your Terraform code you can have a provider entry for the secondary account like:
+
+```
+provider "aws" {
+  alias = "secondary"
+  region = "${var.secondary_region}"
+  access_key = "${var.secondary_access_key_id}"
+  secret_key = "${var.secondary_secret_access_key}"
+  token = "${var.secondary_session_token}"
+}
+
+```
 
 `Terrafile`:
 

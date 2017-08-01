@@ -2,6 +2,9 @@
 
 project: test
 region: eu-west-1
+profiles:
+  test-dev: nproot
+  test-prd: root
 roam-roles:
   test-dev: roam-role-dev
   test-prd: roam-role-prd
@@ -10,4 +13,9 @@ encrypt-s3-state: true
 accounts-mapping:
     test-dev: 1001
     test-prd: 1002
+secondary_accounts:
+  test-dev:
+    id: 2001
+    role: secondary-role-dev
+    region: eu-west-2
 parallelism: 4
