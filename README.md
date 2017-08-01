@@ -71,7 +71,7 @@ parallelism: 10
 
 *1 More information on how to setup AWS assume roles can be found here: [tutorial] (http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) [To create a role for cross-account access (AWS CLI)] (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html#roles-creatingrole-user-cli)
 
-`Cross-account resources`:
+### Cross-account resources
 
 From v0.9.0 there is support for a secondary account per primary account to allow to provision AWS resources across different AWS accounts. Can only be used with STS enabled. A requirement is the AWS shared credentials profile that is used on the primary account to be able to assume the role specified on the secondary account. `project.yaml` configuration example follows:
 
