@@ -29,7 +29,7 @@ type Config struct {
 	Use_sts       bool
 	Mfa_device_id string
 	Mfa_token     string
-	Secondary     *Account
+	Secondary     Account
 }
 
 type Account struct {
@@ -105,7 +105,7 @@ func (c *Config) Connect() interface{} {
 		os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
 		os.Setenv("AWS_DEFAULT_REGION", c.Region)
 
-		if len(c.Secondary.Account_id) > 0 && len(c.Secondary.Role) > 0 && len(c.Secondary.Region) > 0 {
+		if c.Secondary != (Account{}) {
 
 			params2 := &sts.AssumeRoleInput{
 				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Secondary.Account_id, c.Secondary.Role)),
