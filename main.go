@@ -32,7 +32,7 @@ type conf struct {
 	Parallelism      int16             `yaml:"parallelism"`
 	environment      string
 	account          string
-	Secondary        map[string]*aws_helper.Account `yaml:"secondary_accounts"`
+	Secondary        map[string]aws_helper.Account `yaml:"secondary_accounts"`
 }
 
 type multiflag []string
