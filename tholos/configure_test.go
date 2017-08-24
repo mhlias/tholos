@@ -16,7 +16,7 @@ func TestConfigLoad(t *testing.T) {
 
 	tholos = tholos.Configure(false)
 
-	if tholos.Levels != 3 || tholos.Tf_modules_dir != "tfmodules" || tholos.Project_config_file != "project.yaml" || tholos.Root_profile != "root" {
+	if tholos.Tf_modules_dir != "tfmodules" || tholos.Project_config_file != "project.yaml" {
 		t.Fatal("Failed to properly load tholos config and match the parsed values.")
 	}
 
@@ -28,13 +28,13 @@ func TestConfigInput(t *testing.T) {
 
 	os.Setenv("HOME", test_dir)
 
-	inputs := "3,tfmodules,project.yaml,root"
+	inputs := "tfmodules,project.yaml"
 
 	tholos = tholos.Configure(true, inputs)
 
 	tholos = tholos.Configure(false)
 
-	if tholos.Levels != 3 || tholos.Tf_modules_dir != "tfmodules" || tholos.Project_config_file != "project.yaml" || tholos.Root_profile != "root" {
+	if tholos.Tf_modules_dir != "tfmodules" || tholos.Project_config_file != "project.yaml" {
 		t.Fatal("Failed to properly save inputs to tholos config and match the parsed values of the stored file.")
 	}
 

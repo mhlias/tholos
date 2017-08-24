@@ -21,9 +21,7 @@ type Modules struct {
 
 func (m *Modules) Fetch_modules(tholos_conf *tholos.Tholos_config) {
 
-	dir_levels := strings.Repeat("../", tholos_conf.Levels-1)
-
-	modulesFile, _ := filepath.Abs(fmt.Sprintf("%sTerrafile", dir_levels))
+	modulesFile, _ := filepath.Abs(fmt.Sprintf("../../Terrafile"))
 	yamlModules, file_err := ioutil.ReadFile(modulesFile)
 
 	if file_err != nil {
@@ -38,17 +36,23 @@ func (m *Modules) Fetch_modules(tholos_conf *tholos.Tholos_config) {
 
 	cmd_name := "rm"
 
-	exec_args := []string{"-rf", fmt.Sprintf("%s%s", dir_levels, tholos_conf.Tf_modules_dir)}
+	exec_args := []string{"-rf", fmt.Sprintf("../../%s", tholos_conf.Tf_modules_dir)}
 
-	log.Println("[INFO] Cleaning up old Terraform modules.")
+	if len(tholos_conf.Tf_modules_dir) > 0 && !strings.Contains(tholos_conf.Tf_modules_dir, "*") {
 
-	if !ExecCmd(cmd_name, exec_args) {
-		log.Fatal("[ERROR] Failed to clean up old Terraform modules. Aborting.")
+		log.Println("[INFO] Cleaning up old Terraform modules.")
+
+		if !ExecCmd(cmd_name, exec_args) {
+			log.Fatal("[ERROR] Failed to clean up old Terraform modules. Aborting.")
+		}
+
+	} else {
+		log.Println("[WARN] Didn't clean up old terraform modules directory as directory name not set or contains wildcard character.")
 	}
 
 	cmd_name = "mkdir"
 
-	exec_args = []string{"-p", fmt.Sprintf("%s%s", dir_levels, tholos_conf.Tf_modules_dir)}
+	exec_args = []string{"-p", fmt.Sprintf("../../%s", tholos_conf.Tf_modules_dir)}
 
 	log.Println("[INFO] Creating Terraform modules directory (if not present already).")
 
@@ -66,7 +70,7 @@ func (m *Modules) Fetch_modules(tholos_conf *tholos.Tholos_config) {
 			"-b",
 			module.Version,
 			module.Source,
-			fmt.Sprintf("%s%s/%s", dir_levels, tholos_conf.Tf_modules_dir, name),
+			fmt.Sprintf("../../%s/%s", tholos_conf.Tf_modules_dir, name),
 		}
 
 		if !ExecCmd(cmd_name, exec_args) {

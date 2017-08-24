@@ -1,7 +1,9 @@
 ## Overview
 
-A simple terraform wrapper in Go inspired by [domed-city] (https://github.com/ITV/domed-city).
+A simple terraform wrapper for AWS use in Go inspired by [domed-city] (https://github.com/ITV/domed-city).
+WARNING Version v1.0 has breaking changes due to restructure of configuration syntax.
 
+*Warning from Tholos version v1.0.0 config backwards compatibility is broken*
 
 ### Features
 
@@ -23,10 +25,8 @@ This tool wraps terraform execution forcing a specific structure while providing
 This tool will ask you for input on the first run to configure itself for your user.
 Configuration input required:
 
-	- Directory levels from root directory of your project: If your project root directory is `/home/user/projects/my-project` and your terraform templates reside in `/home/user/projects/my-project/terraform/my-account-dev/staging/` then you need to set it to `3`.
-	- Name of your project config yaml file: This file will reside on the root directory of your project and needs to be `%name.yaml` which `%name` you specify in this stage.
-	- Directory name of your terraform modules: This will be always created a level down of the root of your project and will be used by the Terrafile concept to store your project's modules. Will also be the modules source in your terraform templates.
-	- Root profile, is your `$HOME/.aws/credentials` profile name that can assume roles on your AWS accounts
+	- Name of your project config yaml file: This file will reside on a directory up to 3 levels back from the current working directory and needs to be `%name.yaml` which `%name` you specify in this stage.
+	- Directory name of your terraform modules: This will be always created 1 directory level before your current working directory and will be used by the Terrafile concept to store your project's modules. Will also be the modules source in your terraform templates.
 	- With Terraform 0.9.x you need to include in a .tf file the following terraform block:
 
 	```
@@ -37,26 +37,37 @@ Configuration input required:
 
 	```
 
+The configured file is in your `$HOME/.tholos.yaml`
+Example contents:
+
+```
+tf_modules_dir: tfmodules
+project_config_file: project.yaml
+
+```
+
+
 
 From the files mentioned above here are some examples of what their contents need to be:
 
-`%name.yaml`:
+`project.yaml`:
 
 ```
-project: name_of_your_project
+project: testproject
 region: eu-west-1
-profiles:
-		project-dev: aws_shared_credentials_profile1
-		project-prd: aws_shared_credentials_profile2
-roam-roles:
-	  project-dev: roam-role-dev
-		project-prd: roam-role-prd
-use-sts: true
 encrypt-s3-state: true
-accounts-mapping:
-    project-dev: 100000000001
-    project-prd: 100000000002
-parallelism: 10
+accounts:
+  test-dev:
+    profile: nproot
+    account_id: 1001
+    roaming-role: roam-role-dev
+    secondary:
+      id: 2001
+      role: secondary-role-dev
+      region: eu-west-2
+  test-prd:
+    profile: proot
+parallelism: 4
 
 ```
 - `project` should match the name of your AWS account with any -suffix allowed
@@ -67,39 +78,16 @@ parallelism: 10
 - `encrypt-s3-state` is a boolean value that enables or disables S3 remote state server side encryption.
 - `accounts-mapping` is a hash mapping your account-%suffix% used in the project to their AWS account IDS which is needed to assume roles and get STS tokens
 - `parallelism` is the Terraform parallelism setting for refresh of the plan defaults to 10 if omitted
+- `secondary` is for secondary account resources with all of `id`, `role` and `region` required for each secondary account.
 
 
 *1 More information on how to setup AWS assume roles can be found here: [tutorial] (http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) [To create a role for cross-account access (AWS CLI)] (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html#roles-creatingrole-user-cli)
 
 ### Cross-account resources
 
-From v0.9.0 there is support for a secondary account per primary account to allow to provision AWS resources across different AWS accounts. Can only be used with STS enabled. A requirement is the AWS shared credentials profile that is used on the primary account to be able to assume the role specified on the secondary account. `project.yaml` configuration example follows:
+From v0.9.0 there is support for a secondary account per primary account to allow to provision AWS resources across different AWS accounts. Can only be used with STS tokens. A requirement is the AWS shared credentials profile that is used on the primary account to be able to assume the role specified on the secondary account. `project.yaml` configuration example follows:
+See the config example above on what you need to provide for a secondary account.
 
-
-```
-project: name_of_your_project
-region: eu-west-1
-profiles:
-		project-dev: aws_shared_credentials_profile1
-		project-prd: aws_shared_credentials_profile2
-roam-roles:
-	  project-dev: roam-role-dev
-		project-prd: roam-role-prd
-use-sts: true
-encrypt-s3-state: true
-accounts-mapping:
-    project-dev: 100000000001
-    project-prd: 100000000002
-secondary_accounts:
-		project_dev:
-			id: 20001
-			role: secondary-assumed-dev-role
-			region: eu-west-2
-parallelism: 10
-
-```
-
-All of `id`, `role` and `region` are required for each secondary account.
 Then at runtime tholos will export the following environment variables that Terraform can pick up:
 
 - TF_VAR_secondary_access_key_id
@@ -132,14 +120,14 @@ tf_aws_asg:
 	version: v0.2.1
 
 ```
-Terrafile Needs to be in a directory level down from the root of your project.
+Terrafile Needs to be residing 2 directory levels before your current working directory/environment.
 
 Then on your terraform templates you could use a module like:
 
 ```
 
 module "my_asg" {
-  source = "%levels_of_dirs_configured - 1/%name_of_tfmodule_directory/tf_aws_asg_elb"
+  source = "../../%name_of_tfmodule_directory/tf_aws_asg_elb"
 
   params.....
 
@@ -156,6 +144,8 @@ The tool expects to find a `params/env.tfvars` file containing your environment'
 
 ## Usage
 
+When you start working on a new environment you need to run `tholos -init` for the first time, then you can start plan and applying with `tholos -p` and `tholos -a` respectively.
+
 The tool accepts the following parameters:
 
 ```
@@ -164,7 +154,7 @@ The tool accepts the following parameters:
   -e  Terraform state environment to use
   -o	Display Terraform outputs
   -p	Terraform Plan
-  -s	Sync remote S3 state
+  -init	Initialize remote S3 bucket and state
   -t  Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)
   -u	Fetch and update modules from remote repo
 

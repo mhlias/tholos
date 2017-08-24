@@ -24,15 +24,11 @@ import (
 type conf struct {
 	Project          string
 	Region           string
-	Profiles         map[string]string `yaml:"profiles"`
-	Roam_roles       map[string]string `yaml:"roam-roles"`
-	Accounts_mapping map[string]string `yaml:"accounts-mapping"`
-	Use_sts          bool              `yaml:"use-sts"`
-	Encrypt_s3_state bool              `yaml:"encrypt-s3-state"`
-	Parallelism      int16             `yaml:"parallelism"`
+	Encrypt_s3_state bool  `yaml:"encrypt-s3-state"`
+	Parallelism      int16 `yaml:"parallelism"`
 	environment      string
 	account          string
-	Secondary        map[string]aws_helper.Account `yaml:"secondary_accounts"`
+	Accounts         map[string]aws_helper.Account `yaml:"accounts"`
 }
 
 type multiflag []string
@@ -48,6 +44,16 @@ func (d *multiflag) Set(value string) error {
 
 var targetsTF multiflag
 
+const CLR_0 = "\x1b[30;1m"
+const CLR_R = "\x1b[31;1m"
+const CLR_G = "\x1b[32;1m"
+const CLR_Y = "\x1b[33;1m"
+const CLR_B = "\x1b[34;1m"
+const CLR_M = "\x1b[35;1m"
+const CLR_C = "\x1b[36;1m"
+const CLR_W = "\x1b[37;1m"
+const CLR_N = "\x1b[0m"
+
 func main() {
 
 	use_mfa := true
@@ -55,7 +61,7 @@ func main() {
 
 	planPtr := flag.Bool("p", false, "Terraform Plan")
 	applyPtr := flag.Bool("a", false, "Terraform Apply Plan")
-	syncPtr := flag.Bool("s", false, "Sync remote S3 state")
+	initPtr := flag.Bool("init", false, "Initialize project S3 bucket state")
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
 	configPtr := flag.Bool("c", false, "Force reconfiguration of Tholos")
@@ -68,15 +74,31 @@ func main() {
 
 	tholos_conf := tholos.Configure(*configPtr)
 
-	if !*planPtr && !*syncPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
+	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
 		fmt.Println("Please provide one of the following parameters:")
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
-	dir_levels := strings.Repeat("../", tholos_conf.Levels)
+	config_loaded, found := false, false
+	project_config := &conf{}
 
-	project_config := load_config(fmt.Sprintf("%s%s", dir_levels, tholos_conf.Project_config_file))
+	for l := 1; l < 4; l++ {
+
+		dir_levels := strings.Repeat("../", l)
+
+		project_config, found = load_config(fmt.Sprintf("%s%s", dir_levels, tholos_conf.Project_config_file))
+
+		if found {
+			config_loaded = true
+			break
+		}
+
+	}
+
+	if !config_loaded {
+		log.Fatalf("Project config file with name %s couldn't be found up to 3 levels back from current directory. Aborting..", tholos_conf.Project_config_file)
+	}
 
 	curr_dir, err := os.Getwd()
 
@@ -97,6 +119,10 @@ func main() {
 	project_config.environment = tmp[len(tmp)-1]
 	project_config.account = tmp[len(tmp)-2]
 
+	fmt.Printf("%sWORKING ON AWS account: %s and environment: %s\nUsing shared credentials profile %s and assuming IAM role %s on AWS account with ID %s\n", CLR_G, project_config.account, project_config.environment, project_config.Accounts[project_config.account].Profile, project_config.Accounts[project_config.account].RoamRole, project_config.Accounts[project_config.account].AccountID)
+
+	time.Sleep(3 * time.Second)
+
 	mfa_device_id := os.Getenv("MFA_DEVICE_ID")
 	mfa_token := ""
 
@@ -116,11 +142,6 @@ func main() {
 
 	if len(project_config.Project) <= 0 {
 		log.Fatal("[ERROR] No project is set in your project.yaml configuration.")
-	}
-
-	accounts := map[string]bool{fmt.Sprintf("%s-dev", project_config.Project): true,
-		fmt.Sprintf("%s-prd", project_config.Project): true,
-		fmt.Sprintf("%s", project_config.account):     true,
 	}
 
 	tf_version := get_tf_version()
@@ -159,31 +180,23 @@ func main() {
 
 	modules := &tf_helper.Modules{}
 
-	if _, ok := accounts[project_config.account]; !ok {
-		log.Fatalf("[ERROR] Account directories do not match project name. Name found: %s, expected %s-dev or %s-prd\n", project_config.account, project_config.Project, project_config.Project)
-	}
-
 	var client interface{}
 
 	if !*modulesPtr {
 
 		awsconf := &aws_helper.Config{
 			Region:        project_config.Region,
-			Profile:       project_config.Profiles[project_config.account],
-			Role:          project_config.Roam_roles[project_config.account],
-			Account_id:    project_config.Accounts_mapping[project_config.account],
 			Use_mfa:       use_mfa,
-			Use_sts:       project_config.Use_sts,
 			Mfa_device_id: mfa_device_id,
 			Mfa_token:     mfa_token,
-			Secondary:     project_config.Secondary[project_config.account],
+			AWSAccount:    project_config.Accounts[project_config.account],
 		}
 
 		client = awsconf.Connect()
 
 	}
 
-	if *syncPtr || *planPtr || *applyPtr {
+	if *initPtr || *planPtr || *applyPtr {
 
 		if !state_config.TFlegacy {
 
@@ -207,7 +220,7 @@ func main() {
 
 	}
 
-	if *syncPtr {
+	if *initPtr {
 
 		bucket_created := false
 
@@ -243,7 +256,7 @@ func main() {
 
 }
 
-func load_config(project_config_file string) *conf {
+func load_config(project_config_file string) (*conf, bool) {
 
 	project_config := &conf{}
 
@@ -251,7 +264,7 @@ func load_config(project_config_file string) *conf {
 	yamlConf, file_err := ioutil.ReadFile(configFile)
 
 	if file_err != nil {
-		log.Fatalln("[ERROR] File does not exist or not accessible: ", file_err)
+		return project_config, false
 	}
 
 	yaml_err := yaml.Unmarshal(yamlConf, &project_config)
@@ -260,7 +273,7 @@ func load_config(project_config_file string) *conf {
 		log.Fatal(yaml_err)
 	}
 
-	return project_config
+	return project_config, true
 
 }
 
