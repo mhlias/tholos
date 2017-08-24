@@ -1,0 +1,6 @@
+my-module-a:
+  source:  "git@github.com:org/my-module-a.git"
+  version: "v0.4"
+my-module-b:
+  source:  "git@github.com:org/my-module-b.git"
+  version: "v0.1.0"

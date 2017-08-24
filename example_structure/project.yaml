@@ -1,6 +1,6 @@
 ---
 
-project: test
+project: myproject
 region: eu-west-1
 encrypt-s3-state: true
 accounts:
@@ -14,4 +14,3 @@ accounts:
       region: eu-west-2
   test-prd:
     profile: proot
-parallelism: 4

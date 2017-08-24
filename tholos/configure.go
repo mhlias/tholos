@@ -7,17 +7,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
 type Tholos_config struct {
-	Levels              int    `yaml:"levels"`
 	Tf_modules_dir      string `yaml:"tf_modules_dir"`
 	Project_config_file string `yaml:"project_config_file"`
-	Root_profile        string `yaml:"root_profile"`
 }
 
 func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
@@ -40,21 +37,13 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 
 			tmp := strings.Split(inputs[0], ",")
 
-			levelsint, _ := strconv.ParseInt(tmp[0], 10, 32)
-			tholos_config.Levels = int(levelsint)
-
-			tholos_config.Project_config_file = tmp[2]
-			tholos_config.Tf_modules_dir = tmp[1]
-			tholos_config.Root_profile = tmp[3]
+			tholos_config.Project_config_file = tmp[1]
+			tholos_config.Tf_modules_dir = tmp[0]
 
 		} else {
 
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Println("Configuring Tholos for the first time.")
-			fmt.Print("Number of directory levels from root of project to where your terraform templates will reside: ")
-			levels, _ := reader.ReadString('\n')
-			levelsint, _ := strconv.ParseInt(strings.TrimRight(levels, "\n"), 10, 32)
-			tholos_config.Levels = int(levelsint)
 
 			fmt.Print("Name of yaml project config file (including .yaml) in project root directory: ")
 			project_config_file, _ := reader.ReadString('\n')
@@ -63,10 +52,6 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 			fmt.Print("Name of directory your terraform remote modules will be stored in: ")
 			tf_modules_dir, _ := reader.ReadString('\n')
 			tholos_config.Tf_modules_dir = strings.TrimRight(tf_modules_dir, "\n")
-
-			fmt.Print("Name of your root AWS account profile in aws config/credentials: ")
-			root_profile, _ := reader.ReadString('\n')
-			tholos_config.Root_profile = strings.TrimRight(root_profile, "\n")
 
 		}
 

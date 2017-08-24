@@ -22,17 +22,20 @@ type AWSClient struct {
 
 type Config struct {
 	Region        string
-	Profile       string
-	Role          string
-	Account_id    string
 	Use_mfa       bool
-	Use_sts       bool
 	Mfa_device_id string
 	Mfa_token     string
-	Secondary     Account
+	AWSAccount    Account
 }
 
 type Account struct {
+	Profile   string            `yaml:"profile"`
+	RoamRole  string            `yaml:"roam-role"`
+	AccountID string            `yaml:"account_id"`
+	Secondary Secondary_account `yaml:"secondary"`
+}
+
+type Secondary_account struct {
 	Account_id string `yaml:"id"`
 	Role       string `yaml:"role"`
 	Region     string `yaml:"region"`
@@ -54,9 +57,9 @@ func (c *Config) Connect() interface{} {
 	os.Unsetenv("TF_VAR_secondary_session_token")
 	os.Unsetenv("TF_VAR_secondary_region")
 
-	screds := &credentials.SharedCredentialsProvider{Profile: c.Profile}
+	screds := &credentials.SharedCredentialsProvider{Profile: c.AWSAccount.Profile}
 
-	log.Printf("[INFO] Using aws shared credentials profile: %s\n", c.Profile)
+	log.Printf("[INFO] Using aws shared credentials profile: %s\n", c.AWSAccount.Profile)
 
 	awsConfig := &aws.Config{
 		Credentials: credentials.NewCredentials(screds),
@@ -66,7 +69,7 @@ func (c *Config) Connect() interface{} {
 
 	sess := session.New(awsConfig)
 
-	if c.Use_sts {
+	if len(c.AWSAccount.AccountID) > 0 && len(c.AWSAccount.RoamRole) > 0 {
 
 		log.Println("[INFO] Initializing STS Connection")
 		client.stsconn = sts.New(sess)
@@ -76,8 +79,8 @@ func (c *Config) Connect() interface{} {
 		if c.Use_mfa {
 
 			params = &sts.AssumeRoleInput{
-				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
-				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.AWSAccount.AccountID, c.AWSAccount.RoamRole)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.AWSAccount.AccountID, c.AWSAccount.RoamRole)),
 				DurationSeconds: aws.Int64(3600),
 				SerialNumber:    aws.String(c.Mfa_device_id),
 				TokenCode:       aws.String(c.Mfa_token),
@@ -86,8 +89,8 @@ func (c *Config) Connect() interface{} {
 		} else {
 
 			params = &sts.AssumeRoleInput{
-				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Account_id, c.Role)),
-				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.AWSAccount.AccountID, c.AWSAccount.RoamRole)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.AWSAccount.AccountID, c.AWSAccount.RoamRole)),
 				DurationSeconds: aws.Int64(3600),
 			}
 
@@ -105,11 +108,11 @@ func (c *Config) Connect() interface{} {
 		os.Setenv("AWS_SESSION_TOKEN", *sts_resp.Credentials.SessionToken)
 		os.Setenv("AWS_DEFAULT_REGION", c.Region)
 
-		if c.Secondary != (Account{}) {
+		if c.AWSAccount.Secondary != (Secondary_account{}) {
 
 			params2 := &sts.AssumeRoleInput{
-				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.Secondary.Account_id, c.Secondary.Role)),
-				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.Account_id, c.Role)),
+				RoleArn:         aws.String(fmt.Sprintf("arn:aws:iam::%s:role/%s", c.AWSAccount.Secondary.Account_id, c.AWSAccount.Secondary.Role)),
+				RoleSessionName: aws.String(fmt.Sprintf("%s-%s", c.AWSAccount.Secondary.Account_id, c.AWSAccount.Secondary.Role)),
 				DurationSeconds: aws.Int64(3600),
 			}
 
@@ -123,7 +126,7 @@ func (c *Config) Connect() interface{} {
 			os.Setenv("TF_VAR_secondary_secret_access_key", *stssec_resp.Credentials.SecretAccessKey)
 			os.Setenv("TF_VAR_secondary_security_token", *stssec_resp.Credentials.SessionToken)
 			os.Setenv("TF_VAR_secondary_session_token", *stssec_resp.Credentials.SessionToken)
-			os.Setenv("TF_VAR_secondary_region", c.Secondary.Region)
+			os.Setenv("TF_VAR_secondary_region", c.AWSAccount.Secondary.Region)
 
 		}
 
@@ -135,7 +138,7 @@ func (c *Config) Connect() interface{} {
 		var profile_err error
 
 		if profile_creds, profile_err = screds.Retrieve(); profile_err != nil {
-			log.Fatalf("[ERROR] Failed to get aws credentials for profile: %s with error: %s\n", c.Profile, profile_err.Error())
+			log.Fatalf("[ERROR] Failed to get aws credentials for profile: %s with error: %s\n", c.AWSAccount.Profile, profile_err.Error())
 		}
 
 		os.Setenv("AWS_ACCESS_KEY_ID", profile_creds.AccessKeyID)
