@@ -21,6 +21,7 @@ type Config struct {
 	Versioning       bool
 	TargetsTF        []string
 	TFlegacy         bool
+	TFLockLegacy     bool
 	TFenv            string
 	Region           string
 }
@@ -231,12 +232,18 @@ func (c *Config) Setup_remote_state() {
 
 	} else {
 
+		lockoption := "dynamodb_table"
+
+		if c.TFLockLegacy {
+			lockoption = "lock_table"
+		}
+
 		args = []string{"init",
 			"-backend=true",
 			fmt.Sprintf("-backend-config=bucket=%s", c.Bucket_name),
 			fmt.Sprintf("-backend-config=key=%s", c.State_filename),
 			fmt.Sprintf("-backend-config=region=%s", c.Region),
-			fmt.Sprintf("-backend-config=lock_table=%s", c.Lock_table),
+			fmt.Sprintf("-backend-config=%s=%s", lockoption, c.Lock_table),
 			fmt.Sprintf("-backend-config=encrypt=%t", c.Encrypt_s3_state),
 			"-force-copy",
 		}
