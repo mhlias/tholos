@@ -64,15 +64,15 @@ func main() {
 	initPtr := flag.Bool("init", false, "Initialize project S3 bucket state")
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
-	configPtr := flag.Bool("c", false, "Force reconfiguration of Tholos")
 	envPtr := flag.String("e", "", "Terraform state environment to use")
 	flag.Var(&targetsTF, "t", "Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)")
 
 	flag.Parse()
 
-	tholos := &tholos.Tholos_config{}
-
-	tholos_conf := tholos.Configure(*configPtr)
+	tholos_conf := &tholos.Tholos_config{
+		Project_config_file: "project.yaml",
+		Tf_modules_dir:      "tfmodules",
+	}
 
 	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
 		fmt.Println("Please provide one of the following parameters:")
