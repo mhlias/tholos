@@ -25,7 +25,7 @@ func (m *Modules) Fetch_modules(tholos_conf *tholos.Tholos_config) {
 	yamlModules, file_err := ioutil.ReadFile(modulesFile)
 
 	if file_err != nil {
-		log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
+		log.Fatal("[ERROR] File does not exist or not accessible: ", file_err)
 	}
 
 	yaml_err := yaml.Unmarshal(yamlModules, &m.Name)

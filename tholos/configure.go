@@ -64,7 +64,7 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 		save_err := ioutil.WriteFile(tholos_config_fullpath, yaml_out, 0600)
 
 		if save_err != nil {
-			log.Fatal("[ERROR] Failed to save tholos configuration to %s. Aborting with error: %s", tholos_config_fullpath, save_err)
+			log.Fatalf("[ERROR] Failed to save tholos configuration to %s. Aborting with error: %s", tholos_config_fullpath, save_err)
 		}
 
 	} else {
@@ -73,7 +73,7 @@ func (t *Tholos_config) Configure(force bool, inputs ...string) *Tholos_config {
 		yamlConf, file_err := ioutil.ReadFile(configFile)
 
 		if file_err != nil {
-			log.Fatalf("[ERROR] File does not exist or not accessible: ", file_err)
+			log.Fatal("[ERROR] File does not exist or not accessible: ", file_err)
 		}
 
 		yaml_err := yaml.Unmarshal(yamlConf, &tholos_config)
