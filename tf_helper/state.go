@@ -57,7 +57,7 @@ func (c *Config) Create_bucket(client interface{}) bool {
 	_, err2 := client.(*aws_helper.AWSClient).S3conn.CreateBucket(params)
 
 	if err2 != nil {
-		log.Fatal("[ERROR] Failed to create bucket with name %s with error: %v\n", c.Bucket_name, err2)
+		log.Fatalf("[ERROR] Failed to create bucket with name %s with error: %v\n", c.Bucket_name, err2)
 	}
 
 	if c.enable_versioning(client) {
@@ -97,7 +97,7 @@ func (c *Config) enable_versioning(client interface{}) bool {
 		_, err2 := client.(*aws_helper.AWSClient).S3conn.PutBucketVersioning(params2)
 
 		if err2 != nil {
-			log.Println("[ERROR] Failed to enable versioning on S3 bucket %s: ", c.Bucket_name, err)
+			log.Printf("[ERROR] Failed to enable versioning on S3 bucket %s %v: \n", c.Bucket_name, err)
 			return false
 		}
 
