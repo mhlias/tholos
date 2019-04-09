@@ -80,6 +80,35 @@ parallelism: 4
 - `parallelism` is the Terraform parallelism setting for refresh of the plan defaults to 10 if omitted
 - `secondary` is for secondary account resources with all of `id`, `role` and `region` required for each secondary account.
 
+An example configuration with a single AWS account configured:
+
+```
+---
+project: PROJECT_NAME
+region: eu-west-1
+encrypt-s3-state: true
+accounts:
+  test-dev:
+    profile: js-mgmt
+    account_id: ACCOUNT_ID
+    roam-role: ROLE_NAME
+```
+
+
+So based on the above your working directories structure would look like:
+
+```
+.
+├── project.yaml
+└── test-dev <- account name specified in project.yaml
+    └── test <- state/environment name can be anything and where you run tholos into
+        ├── main.tf
+        ├── params <- name of the directory where your state/env tfvars file will be in
+        │   └── env.tfvars <- needs to be named that
+        ├── plans <- needs to be created the first time
+            └── plan.tfplan
+
+```
 
 *1 More information on how to setup AWS assume roles can be found here: [tutorial] (http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html) [To create a role for cross-account access (AWS CLI)] (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html#roles-creatingrole-user-cli)
 
