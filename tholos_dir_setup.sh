@@ -68,11 +68,11 @@ done
 echo ""
 
 #Create top level directory
-mkdir terraform
+mkdir -p terraform
 
 #Create project file and directories at that level
-mkdir terraform/modules
-mkdir terraform/$project_name
+mkdir -p terraform/modules
+mkdir -p terraform/$project_name
 echo "project: $project_name" > terraform/project.yaml
 echo "region: $region_name" >> terraform/project.yaml
 echo "encrypt-s3-state: true" >> terraform/project.yaml
@@ -83,8 +83,10 @@ echo "    roam-role: $roam_role" >> terraform/project.yaml
 echo "    account_id: $account_id" >> terraform/project.yaml
 
 #Create development directory
-mkdir terraform/$project_name/dev
+mkdir -p terraform/$project_name/dev
+mkdir -p terraform/$project_name/dev/plans
+toich terraform/$project_name/dev/plans/.gitkeep
 
-#Create params directory & File
-mkdir terraform/$project_name/dev/params
+#Create params/plans directory & File
+mkdir -p terraform/$project_name/dev/params
 touch terraform/$project_name/dev/params/env.tfvars
