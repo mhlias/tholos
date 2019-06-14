@@ -85,7 +85,7 @@ echo "    account_id: $account_id" >> terraform/project.yaml
 #Create development directory
 mkdir -p terraform/$project_name/dev
 mkdir -p terraform/$project_name/dev/plans
-toich terraform/$project_name/dev/plans/.gitkeep
+touch terraform/$project_name/dev/plans/.gitkeep
 
 #Create params/plans directory & File
 mkdir -p terraform/$project_name/dev/params
