@@ -16,9 +16,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/mhlias/tholos/aws_helper"
-	"github.com/mhlias/tholos/tf_helper"
-	"github.com/mhlias/tholos/tholos"
+	"github.com/JSainsburyPLC/tholos/aws_helper"
+	"github.com/JSainsburyPLC/tholos/tf_helper"
+	"github.com/JSainsburyPLC/tholos/tholos"
 )
 
 type conf struct {
@@ -150,6 +150,8 @@ func main() {
 
 	tf_lock_legacy := true
 
+	tf_012 := false
+
 	log.Printf("[INFO] Terraform Version found: %s\n", tf_version)
 
 	ver_int, _ := strconv.Atoi(strings.Split(tf_version, ".")[1])
@@ -170,6 +172,10 @@ func main() {
 		tf_lock_legacy = false
 	}
 
+	if ver_int >= 12 {
+		tf_012 = true
+	}
+
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
 		Lock_table:       fmt.Sprintf("%s-%s-%s-locktable", project_config.Project, project_config.account, project_config.environment),
@@ -177,6 +183,7 @@ func main() {
 		Region:           project_config.Region,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
+		TF012:            tf_012,
 		TFlegacy:         tf_legacy,
 		TFLockLegacy:     tf_lock_legacy,
 		TFenv:            *envPtr,
