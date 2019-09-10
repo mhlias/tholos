@@ -64,6 +64,7 @@ func main() {
 	initPtr := flag.Bool("init", false, "Initialize project S3 bucket state")
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
+	destroyPtr := flag.Bool("destroy", false, "Terraform Destroy")
 	envPtr := flag.String("e", "", "Terraform state environment to use")
 	flag.Var(&targetsTF, "t", "Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)")
 
@@ -74,7 +75,7 @@ func main() {
 		Tf_modules_dir:      "tfmodules",
 	}
 
-	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
+	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr && !*destroyPtr {
 		fmt.Println("Please provide one of the following parameters:")
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -269,6 +270,8 @@ func main() {
 		state_config.Outputs()
 	} else if *applyPtr {
 		state_config.Apply()
+	} else if *destroyPtr {
+		state_config.Destroy(tf_parallelism)
 	}
 
 }

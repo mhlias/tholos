@@ -186,6 +186,7 @@ The tool accepts the following parameters:
   -init	Initialize remote S3 bucket and state
   -t  Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)
   -u	Fetch and update modules from remote repo
+  -destroy	Terraform destroy
 
 ```
 
