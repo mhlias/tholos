@@ -33,6 +33,8 @@ func (c *Config) Destroy(parallelism int16) {
 
 	exec_args := []string{"destroy", fmt.Sprintf("-parallelism=%d", parallelism)}
 
+	exec_args = append(exec_args, []string{"-refresh=true", "-var-file=params/env.tfvars"}...)
+
 	if len(c.TargetsTF) > 0 {
 		for _, t := range c.TargetsTF {
 			exec_args = append(exec_args, fmt.Sprintf("-target=%s", t))
