@@ -16,9 +16,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/mhlias/tholos/aws_helper"
-	"github.com/mhlias/tholos/tf_helper"
-	"github.com/mhlias/tholos/tholos"
+	"github.com/JSainsburyPLC/tholos/aws_helper"
+	"github.com/JSainsburyPLC/tholos/tf_helper"
+	"github.com/JSainsburyPLC/tholos/tholos"
 )
 
 type conf struct {
@@ -64,6 +64,7 @@ func main() {
 	initPtr := flag.Bool("init", false, "Initialize project S3 bucket state")
 	modulesPtr := flag.Bool("u", false, "Fetch and update modules from remote repo")
 	outputsPtr := flag.Bool("o", false, "Display Terraform outputs")
+	destroyPtr := flag.Bool("destroy", false, "Terraform Destroy")
 	envPtr := flag.String("e", "", "Terraform state environment to use")
 	flag.Var(&targetsTF, "t", "Terraform resources to target only, (-t resourcetype.resource resourcetype2.resource2)")
 
@@ -74,7 +75,7 @@ func main() {
 		Tf_modules_dir:      "tfmodules",
 	}
 
-	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr {
+	if !*planPtr && !*initPtr && !*modulesPtr && !*outputsPtr && !*applyPtr && !*destroyPtr {
 		fmt.Println("Please provide one of the following parameters:")
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -150,6 +151,8 @@ func main() {
 
 	tf_lock_legacy := true
 
+	tf_012 := false
+
 	log.Printf("[INFO] Terraform Version found: %s\n", tf_version)
 
 	ver_int, _ := strconv.Atoi(strings.Split(tf_version, ".")[1])
@@ -170,6 +173,10 @@ func main() {
 		tf_lock_legacy = false
 	}
 
+	if ver_int >= 12 {
+		tf_012 = true
+	}
+
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
 		Lock_table:       fmt.Sprintf("%s-%s-%s-locktable", project_config.Project, project_config.account, project_config.environment),
@@ -177,6 +184,7 @@ func main() {
 		Region:           project_config.Region,
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
+		TF012:            tf_012,
 		TFlegacy:         tf_legacy,
 		TFLockLegacy:     tf_lock_legacy,
 		TFenv:            *envPtr,
@@ -262,6 +270,8 @@ func main() {
 		state_config.Outputs()
 	} else if *applyPtr {
 		state_config.Apply()
+	} else if *destroyPtr {
+		state_config.Destroy(tf_parallelism)
 	}
 
 }

@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/mhlias/tholos/tholos"
+	"github.com/JSainsburyPLC/tholos/tholos"
 )
 
 type Modules struct {

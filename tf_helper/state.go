@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/JSainsburyPLC/tholos/aws_helper"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/mhlias/tholos/aws_helper"
 )
 
 type Config struct {
@@ -21,6 +21,7 @@ type Config struct {
 	Versioning       bool
 	TargetsTF        []string
 	TFlegacy         bool
+	TF012            bool
 	TFLockLegacy     bool
 	TFenv            string
 	Region           string

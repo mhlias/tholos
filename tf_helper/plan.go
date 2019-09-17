@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mhlias/tholos/tholos"
+	"github.com/JSainsburyPLC/tholos/tholos"
 )
 
 func (c *Config) Plan(tholos_conf *tholos.Tholos_config, parallelism int16) {
@@ -41,7 +41,13 @@ func (c *Config) Plan(tholos_conf *tholos.Tholos_config, parallelism int16) {
 
 	c.Setup_remote_state()
 
-	exec_args = []string{"plan", fmt.Sprintf("-parallelism=%d", parallelism), "-module-depth=3", "-refresh=true", "-out=plans/plan.tfplan", "-var-file=params/env.tfvars"}
+	exec_args = []string{"plan", fmt.Sprintf("-parallelism=%d", parallelism)}
+
+	if !c.TF012 {
+		exec_args = append(exec_args, "-module-depth=3")
+	}
+
+	exec_args = append(exec_args, []string{"-refresh=true", "-out=plans/plan.tfplan", "-var-file=params/env.tfvars"}...)
 
 	if len(c.TargetsTF) > 0 {
 		for _, t := range c.TargetsTF {
