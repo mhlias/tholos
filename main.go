@@ -148,7 +148,12 @@ func main() {
 
 	tf_legacy := true
 
+	tf_lock_legacy := true
+
+	log.Printf("[INFO] Terraform Version found: %s\n", tf_version)
+
 	ver_int, _ := strconv.Atoi(strings.Split(tf_version, ".")[1])
+	ver_patch_int, _ := strconv.Atoi(strings.Split(tf_version, ".")[2])
 
 	if ver_int > 8 {
 		tf_legacy = false
@@ -161,6 +166,10 @@ func main() {
 		log.Printf("[WARN] Running in legacy mode, current Terraform version: %s, install >=0.9.x for full features.\n", tf_version)
 	}
 
+	if ver_int >= 10 || (ver_int > 9 && ver_patch_int >= 7) {
+		tf_lock_legacy = false
+	}
+
 	state_config := &tf_helper.Config{Bucket_name: fmt.Sprintf("%s-%s-%s-tfstate", project_config.Project, project_config.account, project_config.environment),
 		State_filename:   fmt.Sprintf("%s-%s-%s.tfstate", project_config.Project, project_config.account, project_config.environment),
 		Lock_table:       fmt.Sprintf("%s-%s-%s-locktable", project_config.Project, project_config.account, project_config.environment),
@@ -169,6 +178,7 @@ func main() {
 		Encrypt_s3_state: project_config.Encrypt_s3_state,
 		TargetsTF:        targetsTF,
 		TFlegacy:         tf_legacy,
+		TFLockLegacy:     tf_lock_legacy,
 		TFenv:            *envPtr,
 	}
 
@@ -291,7 +301,7 @@ func get_tf_version() string {
 
 	start := strings.Index(out_str, "v")
 
-	ver := out_str[start : start+6]
+	ver := out_str[start : start+7]
 
 	return ver
 }
